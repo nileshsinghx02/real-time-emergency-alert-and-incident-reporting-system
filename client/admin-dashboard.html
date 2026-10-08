@@ -21,7 +21,6 @@
         🔔
         <span class="bell-badge hidden" id="bellBadge">0</span>
       </div>
-      <button class="btn-nav btn-nav-outline" id="adminProfileToggle" style="padding: 6px 14px; font-size: 0.82rem; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.2); background: transparent; color: #f0f4f8; cursor: pointer; font-weight: 600; margin-right: 4px;">👤 Profile</button>
       <div class="nav-user">
         <div class="avatar" id="adminAvatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">A</div>
         <span class="user-name" id="adminName">Admin</span>
@@ -30,91 +29,255 @@
     </div>
   </nav>
 
+  <!-- Notifications Panel -->
+  <div class="notif-panel hidden" id="notifPanel" style="position: fixed; top: 70px; right: 24px;">
+    <div class="notif-header">
+      <h4>🔔 Notifications</h4>
+      <button class="btn btn-sm" id="markAllReadBtn" style="padding: 4px 10px; font-size: 0.75rem;">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notifList">
+      <div class="notif-empty">No notifications yet</div>
+    </div>
+  </div>
+
   <!-- Dashboard -->
   <div class="dashboard">
     <div class="dashboard-content">
       <div class="dashboard-header">
-        <h2>👔 Admin Dashboard</h2>
-        <p>Monitor and manage all emergency reports in real-time</p>
+        <h2>🛡️ Emergency Control Room</h2>
+        <p>Monitor incidents, dispatch responders, and track city-wide emergency analytics</p>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card">
-          <div class="stat-icon total">📊</div>
-          <div class="stat-info">
-            <h3 id="statTotal">0</h3>
-            <p>Total Reports</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon pending">⏳</div>
-          <div class="stat-info">
-            <h3 id="statPending">0</h3>
-            <p>Pending</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon progress">🔄</div>
-          <div class="stat-info">
-            <h3 id="statProgress">0</h3>
-            <p>In Progress</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon resolved">✅</div>
-          <div class="stat-info">
-            <h3 id="statResolved">0</h3>
-            <p>Resolved</p>
-          </div>
-        </div>
+      <!-- Tabs -->
+      <div class="tabs" id="adminTabs">
+        <button class="tab-btn active" data-tab="overview">📊 Overview</button>
+        <button class="tab-btn" data-tab="reports">🚨 Reports</button>
+        <button class="tab-btn" data-tab="analytics">📈 Analytics</button>
+        <button class="tab-btn" data-tab="hotspots">🔥 Hotspots</button>
+        <button class="tab-btn" data-tab="responders">🧑‍🚒 Responders</button>
+        <button class="tab-btn" data-tab="users">👥 Users</button>
+        <button class="tab-btn" data-tab="audit">📜 Audit Log</button>
+        <button class="tab-btn" data-tab="profile">👤 Profile</button>
       </div>
 
-      <!-- Filters -->
-      <div class="filter-bar">
-        <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="form-control" id="searchInput" placeholder="Search reports..." style="padding-left: 40px;">
+      <!-- ===== Tab: Overview ===== -->
+      <div id="tab-overview">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-icon total">📊</div>
+            <div class="stat-info"><h3 id="statTotal">0</h3><p>Total Reports</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon pending">🆕</div>
+            <div class="stat-info"><h3 id="statPending">0</h3><p>Awaiting Verification</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon progress">🔄</div>
+            <div class="stat-info"><h3 id="statProgress">0</h3><p>Active Response</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon resolved">✅</div>
+            <div class="stat-info"><h3 id="statResolved">0</h3><p>Resolved / Closed</p></div>
+          </div>
         </div>
-        <select class="form-control" id="filterStatus">
-          <option value="">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Resolved">Resolved</option>
-          <option value="Dismissed">Dismissed</option>
-        </select>
-        <select class="form-control" id="filterType">
-          <option value="">All Types</option>
-          <option value="accident">Accident</option>
-          <option value="fire">Fire</option>
-          <option value="crime">Crime</option>
-          <option value="medical">Medical</option>
-          <option value="natural_disaster">Natural Disaster</option>
-          <option value="other">Other</option>
-        </select>
-        <select class="form-control" id="filterSeverity">
-          <option value="">All Severity</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
-        </select>
-      </div>
 
-      <!-- Reports List -->
-      <div class="reports-list" id="adminReportsList">
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <h3>No reports found</h3>
-          <p>Emergency reports will appear here in real-time.</p>
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🗺️ Live Incident Map</h3>
+            <span class="panel-sub">Active incidents refresh in real time</span>
+          </div>
+          <div class="map-container" style="height: 420px;">
+            <div id="adminMap" style="width:100%;height:100%;"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>⏰ SLA Watchlist</h3>
+            <span class="panel-sub">Incidents breaching or at risk of missing response deadlines</span>
+          </div>
+          <div id="slaWatchlist">
+            <div class="notif-empty">Loading…</div>
+          </div>
         </div>
       </div>
 
-      <!-- Pagination -->
-      <div class="flex justify-center gap-1" style="margin-top: 24px;" id="paginationControls"></div>
+      <!-- ===== Tab: Reports ===== -->
+      <div id="tab-reports" class="hidden">
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search title, description, address..." style="padding-left: 40px;">
+          </div>
+          <select class="form-control" id="filterStatus">
+            <option value="">All Statuses</option>
+            <option value="REPORTED">Reported</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="PRIORITIZED">Prioritized</option>
+            <option value="ASSIGNED">Assigned</option>
+            <option value="DISPATCHED">Dispatched</option>
+            <option value="RESPONDER_ACCEPTED">Accepted</option>
+            <option value="RESPONDER_ARRIVED">Arrived</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="WITHDRAWN">Withdrawn</option>
+          </select>
+          <select class="form-control" id="filterType">
+            <option value="">All Types</option>
+            <option value="accident">Accident</option>
+            <option value="fire">Fire</option>
+            <option value="crime">Crime</option>
+            <option value="medical">Medical</option>
+            <option value="natural_disaster">Natural Disaster</option>
+            <option value="other">Other</option>
+          </select>
+          <select class="form-control" id="filterSeverity">
+            <option value="">All Severity</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <select class="form-control" id="filterPriority">
+            <option value="">All Priority</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+          <select class="form-control" id="filterAssigned">
+            <option value="">All Assignments</option>
+            <option value="unassigned">Unassigned</option>
+            <option value="assigned">Assigned</option>
+          </select>
+        </div>
 
-      <!-- Profile Section (toggled by nav) -->
-      <div id="adminProfileSection" class="hidden" style="margin-top: 30px;">
+        <div class="reports-list" id="adminReportsList">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No reports found</h3>
+            <p>Emergency reports will appear here in real-time.</p>
+          </div>
+        </div>
+        <div class="pagination" id="paginationControls"></div>
+      </div>
+
+      <!-- ===== Tab: Analytics ===== -->
+      <div id="tab-analytics" class="hidden">
+        <div class="kpi-row" id="kpiRow"></div>
+        <div class="analytics-grid" style="margin-top: 20px;">
+          <div class="chart-card"><h4>📅 Reports Over Time</h4><div id="chartOverTime"></div></div>
+          <div class="chart-card"><h4>🗂️ By Category</h4><div id="chartByCategory"></div></div>
+          <div class="chart-card"><h4>⚠️ By Severity</h4><div id="chartBySeverity"></div></div>
+          <div class="chart-card"><h4>📈 By Status</h4><div id="chartByStatus"></div></div>
+          <div class="chart-card"><h4>🎯 By Priority</h4><div id="chartByPriority"></div></div>
+          <div class="chart-card"><h4>⭐ Citizen Feedback</h4><div id="chartFeedback"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3>🏆 Responder Performance</h3></div>
+          <div class="table-wrap"><table class="data-table" id="responderPerfTable">
+            <thead><tr><th>Responder</th><th>Specialization</th><th>Resolved</th><th>Avg Rating</th></tr></thead>
+            <tbody><tr><td colspan="4" class="notif-empty">Loading…</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ===== Tab: Hotspots ===== -->
+      <div id="tab-hotspots" class="hidden">
+        <div class="filter-bar">
+          <select class="form-control" id="hotspotDays">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <select class="form-control" id="hotspotMin">
+            <option value="2">Min 2 reports</option>
+            <option value="3">Min 3 reports</option>
+            <option value="5">Min 5 reports</option>
+          </select>
+        </div>
+        <div class="hotspot-grid" id="hotspotGrid"></div>
+      </div>
+
+      <!-- ===== Tab: Responders ===== -->
+      <div id="tab-responders" class="hidden">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>➕ Add Responder</h3>
+          </div>
+          <form id="addResponderForm">
+            <div class="form-row">
+              <div class="form-group"><label>Name *</label><input id="respName" class="form-control" required></div>
+              <div class="form-group"><label>Email *</label><input id="respEmail" type="email" class="form-control" required></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Password *</label><input id="respPassword" type="password" class="form-control" required minlength="6"></div>
+              <div class="form-group"><label>Phone</label><input id="respPhone" class="form-control"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Specialization *</label>
+                <select id="respSpecialization" class="form-control" required>
+                  <option value="Medical">🏥 Medical</option>
+                  <option value="Fire">🔥 Fire</option>
+                  <option value="Police">🚔 Police</option>
+                  <option value="Disaster">🌊 Disaster</option>
+                  <option value="General">📌 General</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Contact Phone</label><input id="respContact" class="form-control"></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Add Responder</button>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3>🧑‍🚒 Responder Team</h3><span class="panel-sub" id="responderCount"></span></div>
+          <div class="table-wrap"><table class="data-table" id="responderTable">
+            <thead><tr><th>Name</th><th>Specialization</th><th>Availability</th><th>Zone</th><th>Rating</th><th>Active Incidents</th><th>Actions</th></tr></thead>
+            <tbody><tr><td colspan="7" class="notif-empty">Loading…</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ===== Tab: Users ===== -->
+      <div id="tab-users" class="hidden">
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="userSearch" placeholder="Search users..." style="padding-left: 40px;">
+          </div>
+          <select class="form-control" id="userRoleFilter">
+            <option value="">All Roles</option>
+            <option value="user">Citizens</option>
+            <option value="responder">Responders</option>
+            <option value="admin">Admins</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="userTable">
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Reports</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody><tr><td colspan="7" class="notif-empty">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <!-- ===== Tab: Audit ===== -->
+      <div id="tab-audit" class="hidden">
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="auditSearch" placeholder="Search audit trail..." style="padding-left: 40px;">
+          </div>
+          <select class="form-control" id="auditAction">
+            <option value="">All Actions</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="auditTable">
+          <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Description</th></tr></thead>
+          <tbody><tr><td colspan="5" class="notif-empty">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <!-- Profile Section (existing tab) -->
+      <div id="tab-profile" class="hidden">
         <div class="neo-card">
           <div class="profile-header">
             <div class="profile-avatar" id="profileAvatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">A</div>

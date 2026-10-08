@@ -55,6 +55,12 @@
     .severity-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; gap: 2px; margin-top: 16px; }
     .severity-bar > div { border-radius: 4px; transition: width 0.5s ease; }
     .loading-placeholder { text-align: center; padding: 30px; color: var(--text-muted); }
+    .live-map-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow-out); padding: 20px; }
+    .live-map-card .map-container { height: 380px; margin-top: 0; box-shadow: none; }
+    .map-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 0.78rem; color: var(--text-muted); }
+    .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .forgot-link { display: block; text-align: right; font-size: 0.8rem; margin-top: -8px; margin-bottom: 14px; color: var(--accent); font-weight: 600; }
     .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px; backdrop-filter: blur(5px); overflow-y: auto; }
     .auth-modal-overlay.hidden { display: none; }
     @media (max-width: 768px) { .hero h1 { font-size: 1.8rem; } .hero p { font-size: 1rem; } .hero { padding: 50px 16px 40px; } .section { padding: 40px 16px; } .landing-nav { padding: 0 16px; } }
@@ -79,61 +85,18 @@
     <h1>Real-Time Emergency Alert System</h1>
     <p>Report emergencies instantly. Track response in real-time. Help make your community safer with our rapid incident reporting platform.</p>
     <div class="hero-actions">
-      <button class="btn btn-primary" onclick="openAuthModal('register')">🆘 Report Emergency</button>
-      <button class="btn" onclick="document.getElementById('statsSection').scrollIntoView({behavior:'smooth'})">📊 View Live Stats</button>
+    <button class="btn btn-primary" onclick="openAuthModal('login')">🔐 Sign In</button>
+    <button class="btn" onclick="openAuthModal('register')">📝 Create Account</button>
+
+     
+     
     </div>
   </section>
 
-  <!-- Live Stats -->
-  <section class="section" id="statsSection">
-    <div class="section-header">
-      <h2>📊 Live System Statistics</h2>
-      <p>Real-time data from our emergency response network</p>
-    </div>
-    <div class="live-stats-grid" id="mainStats">
-      <div class="live-stat"><div class="stat-number" style="color: var(--accent);" id="homeStatTotal">—</div><div class="stat-label">Total Reports</div></div>
-      <div class="live-stat"><div class="stat-number" style="color: var(--status-pending);" id="homeStatPending">—</div><div class="stat-label">Pending</div></div>
-      <div class="live-stat"><div class="stat-number" style="color: var(--status-progress);" id="homeStatProgress">—</div><div class="stat-label">In Progress</div></div>
-      <div class="live-stat"><div class="stat-number" style="color: var(--status-resolved);" id="homeStatResolved">—</div><div class="stat-label">Resolved</div></div>
-      <div class="live-stat"><div class="stat-number" style="color: var(--accent-dark);" id="homeStatUsers">—</div><div class="stat-label">Registered Users</div></div>
-      <div class="live-stat"><div class="stat-number" style="color: var(--severity-high);" id="homeStatAvgTime">—</div><div class="stat-label">Avg. Resolution (hrs)</div></div>
-    </div>
 
-    <!-- Severity Bar -->
-    <div class="neo-card" style="margin-bottom: 30px;">
-      <h4 style="margin-bottom: 8px;">Severity Distribution</h4>
-      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">Breakdown of all reports by severity level</p>
-      <div class="severity-bar" id="severityBar">
-        <div style="width: 25%; background: var(--severity-low);"></div>
-        <div style="width: 25%; background: var(--severity-medium);"></div>
-        <div style="width: 25%; background: var(--severity-high);"></div>
-        <div style="width: 25%; background: var(--severity-critical);"></div>
-      </div>
-      <div class="flex justify-between" style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted);">
-        <span>🟢 Low: <strong id="sevLow">0</strong></span>
-        <span>🟡 Medium: <strong id="sevMedium">0</strong></span>
-        <span>🟠 High: <strong id="sevHigh">0</strong></span>
-        <span>🔴 Critical: <strong id="sevCritical">0</strong></span>
-      </div>
-    </div>
+ 
 
-    <!-- Type Breakdown -->
-    <h4 style="margin-bottom: 16px;">Reports by Emergency Type</h4>
-    <div class="type-breakdown" id="typeBreakdown">
-      <div class="loading-placeholder"><div class="spinner" style="margin: 0 auto;"></div><p style="margin-top: 12px;">Loading live data...</p></div>
-    </div>
-  </section>
-
-  <!-- Recent Resolved -->
-  <section class="section" style="padding-top: 0;">
-    <div class="section-header">
-      <h2>✅ Recently Resolved Incidents</h2>
-      <p>Latest emergencies that have been successfully resolved</p>
-    </div>
-    <div id="recentResolved">
-      <div class="loading-placeholder"><div class="spinner" style="margin: 0 auto;"></div></div>
-    </div>
-  </section>
+ 
 
   <!-- Features -->
   <section class="section" style="padding-top: 0;">
@@ -146,14 +109,14 @@
       <div class="feature-card"><div class="feature-icon">📍</div><h4>Map-Based Location</h4><p>Pinpoint exact incident location with interactive maps, GPS geolocation, and reverse geocoding.</p></div>
       <div class="feature-card"><div class="feature-icon">📷</div><h4>Image Evidence</h4><p>Upload up to 4 photos per report. Images are auto-compressed for fast loading without quality loss.</p></div>
       <div class="feature-card"><div class="feature-icon">🔔</div><h4>Email Notifications</h4><p>Automated email alerts to admins for new reports and to users when their report status changes.</p></div>
-      <div class="feature-card"><div class="feature-icon">📊</div><h4>Live Status Tracking</h4><p>Track your report from Pending → In Progress → Resolved with real-time status updates.</p></div>
+      <div class="feature-card"><div class="feature-icon">📊</div><h4>Live Status Tracking</h4><p>Follow your report through the full incident lifecycle — verification, priority, dispatch, and resolution — with real-time updates.</p></div>
       <div class="feature-card"><div class="feature-icon">🔒</div><h4>Secure & Reliable</h4><p>JWT authentication, bcrypt password hashing, rate limiting, and input validation for enterprise-grade security.</p></div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="landing-footer">
-    <p>🚨 Emergency Alert & Incident Reporting System — University Minor Project &copy; 2026</p>
+    <p>🚨 Emergency Alert & Incident Response Platform — University Major Project &copy; 2026</p>
   </footer>
 
   <!-- Auth Modal -->
@@ -170,9 +133,24 @@
         <form id="loginForm">
           <div class="form-group"><label for="loginEmail">Email Address</label><input type="email" id="loginEmail" class="form-control" placeholder="you@example.com" required autocomplete="email"></div>
           <div class="form-group"><label for="loginPassword">Password</label><input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" required autocomplete="current-password"></div>
+          <a href="#" class="forgot-link" id="showForgot">Forgot password?</a>
           <button type="submit" class="btn btn-primary w-full" id="loginBtn">Sign In</button>
         </form>
         <div class="auth-toggle">Don't have an account? <a href="#" id="showRegister">Create one</a></div>
+      </div>
+      <!-- Forgot Password -->
+      <div id="forgotSection" class="hidden">
+        <div class="auth-header">
+          <div class="logo">🔑</div>
+          <h1>Reset Password</h1>
+          <p>Enter your email to receive a reset link</p>
+        </div>
+        <form id="forgotForm">
+          <div class="form-group"><label for="forgotEmail">Email Address</label><input type="email" id="forgotEmail" class="form-control" placeholder="you@example.com" required autocomplete="email"></div>
+          <button type="submit" class="btn btn-primary w-full" id="forgotBtn">Send Reset Link</button>
+        </form>
+        <div id="forgotResult" class="hidden" style="margin-top: 14px;"></div>
+        <div class="auth-toggle"><a href="#" id="backToLogin">← Back to sign in</a></div>
       </div>
       <!-- Register -->
       <div id="registerSection" class="hidden">
@@ -197,6 +175,9 @@
   <!-- Toast -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- Leaflet for the live map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="js/api.js"></script>
   <script src="js/home.js"></script>
 </body>

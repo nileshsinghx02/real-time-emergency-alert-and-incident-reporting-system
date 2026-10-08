@@ -17,6 +17,10 @@
       <span>Emergency Alert</span>
     </div>
     <div class="flex items-center gap-2">
+      <div class="notification-bell" id="notifBell" title="Notifications">
+        <span style="font-size: 1.3rem;">🔔</span>
+        <span class="bell-badge hidden" id="notifBadge">0</span>
+      </div>
       <div class="nav-user">
         <div class="avatar" id="userAvatar">U</div>
         <span class="user-name" id="userName">User</span>
@@ -24,6 +28,17 @@
       <button class="btn-logout" id="logoutBtn">Logout</button>
     </div>
   </nav>
+
+  <!-- Notifications Panel -->
+  <div class="notif-panel hidden" id="notifPanel" style="position: fixed; top: 70px; right: 24px;">
+    <div class="notif-header">
+      <h4>🔔 Notifications</h4>
+      <button class="btn btn-sm" id="markAllReadBtn" style="padding: 4px 10px; font-size: 0.75rem;">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notifList">
+      <div class="notif-empty">No notifications yet</div>
+    </div>
+  </div>
 
   <!-- Dashboard -->
   <div class="dashboard">
@@ -115,6 +130,35 @@
 
       <!-- Tab: My Reports -->
       <div id="tab-myReports" class="hidden">
+        <div class="filter-bar" id="myReportsFilter">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" id="mySearch" placeholder="Search my reports...">
+          </div>
+          <select class="form-control" id="myStatusFilter">
+            <option value="">All statuses</option>
+            <option value="REPORTED">Reported</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="PRIORITIZED">Prioritized</option>
+            <option value="ASSIGNED">Assigned</option>
+            <option value="DISPATCHED">Dispatched</option>
+            <option value="RESPONDER_ACCEPTED">Accepted</option>
+            <option value="RESPONDER_ARRIVED">Arrived</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="WITHDRAWN">Withdrawn</option>
+          </select>
+          <select class="form-control" id="myTypeFilter">
+            <option value="">All types</option>
+            <option value="accident">Accident</option>
+            <option value="fire">Fire</option>
+            <option value="crime">Crime</option>
+            <option value="medical">Medical</option>
+            <option value="natural_disaster">Natural Disaster</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div class="reports-list" id="myReportsList">
           <div class="empty-state">
             <div class="empty-icon">📭</div>
@@ -122,6 +166,7 @@
             <p>Submit an emergency report to see it here.</p>
           </div>
         </div>
+        <div class="pagination" id="myReportsPagination"></div>
       </div>
 
       <!-- Tab: Profile -->

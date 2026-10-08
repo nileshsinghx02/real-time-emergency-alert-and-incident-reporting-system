@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Alert — Responder Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">🚨</div>
+      <span>Emergency Alert — Responder</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="notification-bell" id="notifBell" title="Notifications">
+        <span style="font-size: 1.3rem;">🔔</span>
+        <span class="bell-badge hidden" id="bellBadge">0</span>
+      </div>
+      <div class="nav-user">
+        <div class="avatar" id="respAvatar" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);">R</div>
+        <span class="user-name" id="respName">Responder</span>
+        <span class="specialization-chip" id="respSpecChip" style="margin-left: 8px;">—</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Notifications Panel -->
+  <div class="notif-panel hidden" id="notifPanel" style="position: fixed; top: 70px; right: 24px;">
+    <div class="notif-header">
+      <div>
+        <h4>🔔 Notifications</h4>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Assignments &amp; updates</p>
+      </div>
+      <button class="btn btn-sm" id="markAllReadBtn" style="padding: 4px 10px; font-size: 0.75rem;">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notifList">
+      <div class="notif-empty">No notifications yet</div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard">
+    <div class="dashboard-content">
+      <div class="dashboard-header">
+        <h2>🧑‍🚒 Responder Console</h2>
+        <p>Respond to assignments, update your status, and keep citizens informed</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="respTabs">
+        <button class="tab-btn active" data-tab="assignments">🚨 Assignments</button>
+        <button class="tab-btn" data-tab="history">📁 History</button>
+        <button class="tab-btn" data-tab="profile">👤 Profile</button>
+      </div>
+
+      <!-- Tab: Assignments -->
+      <div id="tab-assignments">
+        <!-- Availability toggle -->
+        <div class="neo-card" style="margin-bottom: 20px;">
+          <div class="flex items-center" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h4 style="margin: 0 0 4px;">🟢 Duty Status</h4>
+              <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;" id="availabilityHint">Set yourself Available to receive dispatches</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="availability-dot available" id="availDot"></span>
+              <select id="availabilitySelect" class="form-control" style="min-width: 160px;">
+                <option value="Available">🟢 Available</option>
+                <option value="Assigned">🟡 Assigned</option>
+                <option value="Responding">🟠 Responding</option>
+                <option value="Offline">⚫ Offline</option>
+              </select>
+              <button class="btn btn-sm btn-primary" id="saveAvailabilityBtn">Update</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignment list -->
+        <div class="reports-list" id="assignmentList">
+          <div class="empty-state">
+            <div class="empty-icon">🛌</div>
+            <h3>No active assignments</h3>
+            <p>You're on standby. Dispatches will appear here with sound alerts.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: History -->
+      <div id="tab-history" class="hidden">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>📁 Completed &amp; Closed Incidents</h3>
+              <p class="panel-sub">Incidents you resolved, plus rejected assignments</p>
+            </div>
+            <button class="btn btn-sm" id="refreshHistoryBtn">↻ Refresh</button>
+          </div>
+          <div class="reports-list" id="historyList">
+            <div class="notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Profile -->
+      <div id="tab-profile" class="hidden">
+        <div class="neo-card">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);">R</div>
+            <div>
+              <h3 id="profileDisplayName">Responder</h3>
+              <p style="color: var(--text-muted); font-size: 0.88rem;" id="profileDisplayEmail">—</p>
+            </div>
+          </div>
+          <hr style="border: none; border-top: 1px solid var(--bg-secondary); margin: 24px 0;">
+          <h4 style="margin-bottom: 16px;">🧑‍🚒 Responder Details</h4>
+          <form id="respProfileForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="profSpecialization">Specialization</label>
+                <select id="profSpecialization" class="form-control">
+                  <option value="Medical">🏥 Medical</option>
+                  <option value="Fire">🔥 Fire</option>
+                  <option value="Police">🚔 Police</option>
+                  <option value="Disaster">🌊 Disaster</option>
+                  <option value="General">📌 General</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="profZone">Patrol Zone</label>
+                <input type="text" id="profZone" class="form-control" placeholder="e.g. New Delhi — Central">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="profContact">Contact Phone</label>
+                <input type="tel" id="profContact" class="form-control" placeholder="+91 9876543210">
+              </div>
+              <div class="form-group">
+                <label for="profLocation">Current Location (lat, lng)</label>
+                <div class="flex gap-2">
+                  <input type="number" id="profLat" class="form-control" step="any" placeholder="28.6139">
+                  <input type="number" id="profLng" class="form-control" step="any" placeholder="77.2090">
+                  <button type="button" class="btn btn-sm" id="useGpsBtn" title="Use device GPS">📍 GPS</button>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="saveProfileBtn">💾 Save Details</button>
+          </form>
+          <hr style="border: none; border-top: 1px solid var(--bg-secondary); margin: 24px 0;">
+          <h4 style="margin-bottom: 12px;">⭐ Performance</h4>
+          <div class="kpi-row" id="respKpiRow">
+            <div class="kpi-box"><div class="kpi-value" id="kpiResolved">—</div><div class="kpi-label">Resolved</div></div>
+            <div class="kpi-box"><div class="kpi-value" id="kpiRating">—</div><div class="kpi-label">Avg Rating</div></div>
+            <div class="kpi-box"><div class="kpi-value" id="kpiActive">—</div><div class="kpi-label">Active Now</div></div>
+            <div class="kpi-box"><div class="kpi-value" id="kpiAvailability">—</div><div class="kpi-label">Duty Status</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay hidden" id="incidentModal">
+    <div class="modal" style="max-width: 640px;">
+      <button class="modal-close" id="closeIncidentModal">✕</button>
+      <div id="incidentModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Audio alert for dispatch -->
+  <audio id="dispatchSound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRlYFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTIFAACAgICAgICAgICAgICAgICAgICA/4CAgP+AgIB+gICAfoCAgH6AgIB+gHqAeoB6gH6AfoD/gP+A/4D/gP+A/4D/gP+AgICAgP+AgICAgICA/4CAgP+AgIB8gICAfoCAgH6AgID+gICA/oCAgHqAgIB6gICAeoB+gP+A/4D/gP+A/4D/gP+A/4CAgICAgICAgICAgICAgICAgICAgICA" type="audio/wav">
+  </audio>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/responderDashboard.js"></script>
+</body>
+</html>

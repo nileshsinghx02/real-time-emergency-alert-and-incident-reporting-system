@@ -8,10 +8,27 @@
     const user = getUser();
     if (user && user.role === 'admin') {
       window.location.href = '/admin-dashboard.html';
+    } else if (user && user.role === 'responder') {
+      window.location.href = '/responder-dashboard.html';
     } else {
       window.location.href = '/user-dashboard.html';
     }
     return;
+  }
+
+  // Route citizens/responders to the correct dashboards after login
+  function dashboardFor(role) {
+    if (role === 'admin') return '/admin-dashboard.html';
+    if (role === 'responder') return '/responder-dashboard.html';
+    return '/user-dashboard.html';
+  }
+
+  // Format a date for tables/popups
+  function formatDate(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    if (isNaN(date)) return '—';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   // ---- Load Public Stats (real data from DB) ----
@@ -186,7 +203,7 @@
       saveAuth(data);
       showToast('success', 'Welcome back!', `Hello, ${data.user.name}`);
       setTimeout(() => {
-        window.location.href = data.user.role === 'admin' ? '/admin-dashboard.html' : '/user-dashboard.html';
+        window.location.href = dashboardFor(data.user.role);
       }, 500);
     } catch (err) {
       showToast('error', 'Login failed', err.message);
@@ -224,9 +241,107 @@
     }
   });
 
+  // ---- Live Incident Map ----
+  let homeMap = null;
+  let homeMarkers = null;
+
+  function severityColor(sev) {
+    return { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' }[sev] || '#0ea5e9';
+  }
+
+  function initHomeMap() {
+    if (!window.L || homeMap) return;
+    homeMap = L.map('homeMap', { scrollWheelZoom: false }).setView([28.6139, 77.2090], 11);
+    const mapTilerKey = 'PD10oWCF3a50XHfSVfZh';
+
+L.tileLayer(`https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${mapTilerKey}`, {
+    tileSize: 512,
+    zoomOffset: -1,
+    minZoom: 1,
+    maxZoom: 20,
+    attribution: '&copy; MapTiler &copy; OpenStreetMap contributors'
+}).addTo(homeMap);
+    homeMarkers = L.layerGroup().addTo(homeMap);
+  }
+
+  async function loadHomeMap() {
+    initHomeMap();
+    if (!homeMap) return;
+    try {
+      const data = await fetch(API_BASE + '/stats/public-map').then(r => r.json()).catch(() => null);
+      homeMarkers.clearLayers();
+      if (data && data.success && Array.isArray(data.incidents)) {
+        data.incidents.forEach(r => {
+          if (r.lat && r.lng) {
+            const c = severityColor(r.severity);
+            L.circleMarker([r.lat, r.lng], {
+              radius: r.severity === 'critical' ? 10 : 7,
+              color: c,
+              weight: 2,
+              fillColor: c,
+              fillOpacity: 0.5
+            }).addTo(homeMarkers)
+              .bindPopup(`<strong>${r.title}</strong><br><span style="font-size:12px;color:#666">${r.type.replace('_', ' ')} · ${r.severity} · ${formatDate(r.createdAt)}</span>`);
+          }
+        });
+      }
+      setTimeout(() => homeMap && homeMap.invalidateSize(), 200);
+    } catch (err) {
+      console.warn('Home map load failed:', err);
+    }
+  }
+
+  // ---- Forgot Password ----
+  const forgotSection = document.getElementById('forgotSection');
+  const loginSection = document.getElementById('loginSection');
+
+  document.getElementById('showForgot').addEventListener('click', (e) => {
+    e.preventDefault();
+    loginSection.classList.add('hidden');
+    forgotSection.classList.remove('hidden');
+  });
+
+  document.getElementById('backToLogin').addEventListener('click', (e) => {
+    e.preventDefault();
+    forgotSection.classList.add('hidden');
+    loginSection.classList.remove('hidden');
+  });
+
+  document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('forgotBtn');
+    const email = document.getElementById('forgotEmail').value.trim();
+    const resultBox = document.getElementById('forgotResult');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    resultBox.classList.add('hidden');
+    try {
+      const data = await apiForgotPassword(email);
+      let html = `<div class="duplicate-warning" style="border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08);">
+        <div class="dup-header" style="color:#047857;">✅ ${data.message || 'Reset link sent'}</div>`;
+      // In dev (no SMTP configured) the API returns the link directly
+      if (data.resetUrl) {
+        html += `<p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:6px;">Email service not configured — use this direct link:</p>
+          <a href="${data.resetUrl}" class="btn btn-sm btn-primary">Open reset link</a>`;
+      }
+      html += `</div>`;
+      resultBox.innerHTML = html;
+      resultBox.classList.remove('hidden');
+    } catch (err) {
+      resultBox.innerHTML = `<div class="duplicate-warning" style="border-color: rgba(239,68,68,0.4);">
+        <div class="dup-header" style="color:#b91c1c;">❌ ${err.message}</div></div>`;
+      resultBox.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Reset Link';
+    }
+  });
+
   // ---- Init ----
   loadPublicStats();
+  loadHomeMap();
 
   // Refresh stats every 30 seconds
   setInterval(loadPublicStats, 30000);
+  setInterval(loadHomeMap, 30000);
 })();

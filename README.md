@@ -1,45 +1,119 @@
-# 🚨 Real-Time Emergency Alert & Incident Reporting System
+# 🚨 Real-Time Emergency Alert & Incident Response Platform
 
-A full-stack real-time emergency alert system built as a **University Minor Project**. Citizens can report emergencies with photos and GPS location; admins receive instant notifications and manage incidents through a live dashboard.
+A full-stack real-time emergency incident response platform built as a **University Major Project**. Citizens report emergencies with photos and GPS; the control room verifies, transparently scores priority, dispatches the best-matched responder, and tracks the full incident lifecycle — with SLA deadlines, duplicate detection, hotspot analytics, and a complete audit trail.
 
 ![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express)
 ![MongoDB](https://img.shields.io/badge/MongoDB-7.0+-47A248?logo=mongodb&logoColor=white)
 ![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?logo=socket.io)
+![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet&logoColor=white)
 
 ---
 
 ## 📑 Table of Contents
 
 1. [Features](#-features)
-2. [Tech Stack](#-tech-stack)
-3. [Project Structure](#-project-structure)
-4. [Prerequisites](#-prerequisites)
-5. [Database Setup (Step-by-Step)](#-database-setup-step-by-step)
-6. [Installation & Running](#-installation--running)
-7. [Environment Variables](#-environment-variables)
-8. [Database Schema](#-database-schema)
-9. [API Reference](#-api-reference)
-10. [Default Credentials](#-default-credentials)
-11. [Architecture Overview](#-architecture-overview)
-12. [Screenshots](#-screenshots)
-13. [Troubleshooting](#-troubleshooting)
+2. [Incident Lifecycle](#-incident-lifecycle)
+3. [Tech Stack](#-tech-stack)
+4. [Project Structure](#-project-structure)
+5. [Prerequisites](#-prerequisites)
+6. [Database Setup (Step-by-Step)](#-database-setup-step-by-step)
+7. [Installation & Running](#-installation--running)
+8. [Environment Variables](#-environment-variables)
+9. [Data Model](#-data-model)
+10. [API Reference](#-api-reference)
+11. [WebSocket Events](#-websocket-events)
+12. [Default Credentials](#-default-credentials)
+13. [Architecture Overview](#-architecture-overview)
+14. [Troubleshooting](#-troubleshooting)
 
 ---
 
 ## ✨ Features
 
+### Citizens
+
 | Feature | Description |
 |---------|-------------|
-| **Real-Time Alerts** | Admins receive instant push notifications via WebSocket when a new report is submitted |
-| **Map-Based Location** | Interactive Leaflet.js map with GPS geolocation and reverse geocoding (Nominatim) |
-| **Image Evidence** | Upload up to 4 photos per report, auto-compressed to WebP via Sharp |
-| **Email Notifications** | Automated emails to admins (new reports) and users (status changes) via Nodemailer |
-| **Live Status Tracking** | Reports flow through Pending → In Progress → Resolved/Dismissed with real-time updates |
-| **Profile Management** | Users and admins can edit name, phone, and change password from dashboard |
-| **Landing Page Stats** | Public homepage shows live statistics pulled from the database (auto-refreshes every 30s) |
-| **Neomorphic UI** | Clean, modern neomorphic design with teal/cyan accents |
-| **Security** | JWT auth, bcrypt hashing, Helmet headers, CORS, rate limiting, input validation |
+| **Report Emergencies** | Type, severity, title, description, GPS pin on interactive map, up to 4 photos |
+| **Duplicate Warning** | Server checks nearby recent reports of the same type and warns before submission |
+| **Transparent Priority** | Every report gets a 0–100 priority score with a human-readable reason |
+| **Live Timeline** | Every lifecycle action is timestamped and visible to the reporter |
+| **Edit / Withdraw** | Edit or withdraw reports while still in early lifecycle stages |
+| **Persistent Notifications** | Bell dropdown with unread badge; survives page reloads (stored in MongoDB) |
+| **Feedback & Rating** | 1–5 star rating + comment after an incident is resolved |
+| **Forgot Password** | Email reset link (dev mode shows the link directly) |
+
+### Control Room (Admin)
+
+| Feature | Description |
+|---------|-------------|
+| **8-Tab Control Room** | Overview, Reports, Analytics, Hotspots, Responders, Users, Audit Log, Profile |
+| **Live Map** | Active incidents plotted by severity color, click to open the incident |
+| **SLA Watchlist** | Incidents breaching verify/dispatch/resolve deadlines surface automatically |
+| **Lifecycle Management** | Verify, Reject (with reason), Prioritize, Dispatch, Close — role-enforced transitions |
+| **Priority Control** | Override the computed priority with a mandatory reason (audited) |
+| **Responder Recommendations** | Scored top-5 list (specialization match, distance, availability, load, rating) |
+| **Dispatch & Reassign** | Assign a responder; rejected assignments return to the queue |
+| **Duplicate Linking** | Merge duplicate reports into a primary incident |
+| **Analytics Dashboard** | KPIs, reports over time, category/severity/status/priority breakdowns, feedback distribution, responder performance |
+| **Hotspot Detection** | Grid clustering of repeat-incident locations with intensity bars |
+| **Team & User Management** | Create/deactivate responder accounts; enable/disable citizens |
+| **Audit Trail** | Every admin action is logged with actor, action, target, and description |
+
+### Responders
+
+| Feature | Description |
+|---------|-------------|
+| **Duty Status** | Available / Assigned / Responding / Offline toggle broadcast to the control room |
+| **Assignment Cards** | Urgent styling for CRITICAL incidents, navigate button, reporter phone |
+| **Accept / Reject** | Reject with mandatory reason returns the incident to the control room |
+| **On-Scene Workflow** | Accept → Arrive → Resolve with resolution notes |
+| **Performance KPIs** | Resolved count, average rating, active assignments |
+
+### Platform
+
+| Feature | Description |
+|---------|-------------|
+| **Real-Time Everything** | Socket.io with JWT handshake auth; new reports, status changes, notifications |
+| **SLA Tracking** | Per-priority verify/dispatch/resolve deadlines with automatic escalation flagging |
+| **Audit Logging** | Dedicated audit collection for all privileged actions |
+| **Security** | JWT + refresh tokens, bcrypt, Helmet, CORS, rate limiting, input validation |
+| **Neomorphic UI** | Custom design system (~2100 lines) with responsive layout |
+
+---
+
+## 🔄 Incident Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> REPORTED: citizen submits
+    REPORTED --> VERIFIED: admin verifies (SLA clock starts)
+    REPORTED --> REJECTED: admin rejects (reason required)
+    VERIFIED --> PRIORITIZED: priority assigned
+    PRIORITIZED --> ASSIGNED: responder assigned
+    ASSIGNED --> DISPATCHED: dispatch notification sent
+    DISPATCHED --> RESPONDER_ACCEPTED: responder accepts
+    DISPATCHED --> ASSIGNED: responder rejects (reason required)
+    RESPONDER_ACCEPTED --> RESPONDER_ARRIVED: on scene
+    RESPONDER_ARRIVED --> RESOLVED: resolution notes
+    RESOLVED --> CLOSED: admin closes
+    REPORTED --> WITHDRAWN: citizen withdraws
+    VERIFIED --> WITHDRAWN: citizen withdraws
+    PRIORITIZED --> WITHDRAWN: citizen withdraws
+    REJECTED --> [*]
+    WITHDRAWN --> [*]
+    CLOSED --> [*]
+```
+
+**SLA deadlines** are set when a report is verified, based on priority:
+
+| Priority | Verify | Dispatch | Resolve |
+|----------|--------|----------|---------|
+| CRITICAL | 5 min | 10 min | 60 min |
+| HIGH | 10 min | 20 min | 120 min |
+| MEDIUM | 30 min | 60 min | 480 min |
+| LOW | 60 min | 120 min | 1440 min |
 
 ---
 
@@ -51,78 +125,85 @@ A full-stack real-time emergency alert system built as a **University Minor Proj
 |-----------|---------|
 | **Node.js** | JavaScript runtime |
 | **Express 5.x** | Web framework |
-| **MongoDB** | NoSQL database |
-| **Mongoose** | MongoDB ODM (Object Data Modeling) |
-| **Socket.io** | Real-time bidirectional communication |
-| **JWT + bcryptjs** | Authentication & password hashing |
+| **MongoDB + Mongoose** | Database & ODM |
+| **Socket.io** | Real-time bidirectional communication (JWT handshake auth) |
+| **JWT + Refresh Tokens + bcryptjs** | Authentication & password hashing |
 | **Multer + Sharp** | File upload & image compression (WebP) |
-| **Nodemailer** | Email notifications (SMTP) |
-| **Helmet** | HTTP security headers |
-| **express-rate-limit** | Brute-force protection |
-| **express-validator** | Input sanitization & validation |
+| **Nodemailer** | Email notifications & password reset links |
+| **Helmet / CORS / express-rate-limit / express-validator** | Security & validation |
 | **compression** | Gzip response compression |
 
 ### Frontend
 
 | Technology | Purpose |
 |-----------|---------|
-| **HTML5 / CSS3 / JS** | Vanilla frontend (no frameworks) |
-| **Leaflet.js** | Interactive maps with OpenStreetMap |
+| **HTML5 / CSS3 / Vanilla JS** | No frameworks |
+| **Leaflet.js 1.9.4** | Interactive maps (OpenStreetMap) |
 | **Socket.io Client** | Real-time event handling |
-| **Neomorphic CSS** | Custom design system (~1300 lines) |
+| **Neomorphic CSS** | Custom design system (~2100 lines) |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-projectjitu/
+Emergency-alert/
 ├── README.md
 ├── client/                          # Frontend (served as static files)
-│   ├── index.html                   # Landing page with live stats & auth modal
-│   ├── user-dashboard.html          # User: report form, map, tracker, profile
-│   ├── admin-dashboard.html         # Admin: live feed, filters, status mgmt, profile
+│   ├── index.html                   # Landing: live stats, public incident map, auth modal, forgot password
+│   ├── user-dashboard.html          # Citizen: report form, my reports, filters, timeline, feedback
+│   ├── admin-dashboard.html         # Admin: 8-tab control room
+│   ├── responder-dashboard.html     # Responder: assignments, duty status, profile
+│   ├── reset-password.html          # Password reset page (token from email link)
 │   ├── css/
-│   │   └── style.css                # Full neomorphic design system (~1300 lines)
-│   ├── js/
-│   │   ├── api.js                   # Centralized fetch wrapper, auth helpers, toasts
-│   │   ├── home.js                  # Landing page: real stats + auth modal logic
-│   │   ├── auth.js                  # Legacy auth page (kept for reference)
-│   │   ├── socket.js                # Socket.io client (room joining, reconnection)
-│   │   ├── userDashboard.js         # User dashboard: form, map, upload, profile
-│   │   └── adminDashboard.js        # Admin dashboard: reports, filters, profile
-│   └── assets/                      # Static assets (images, icons)
+│   │   └── style.css                # Full neomorphic design system (~2100 lines)
+│   └── js/
+│       ├── api.js                   # Fetch wrapper, token refresh, 60+ API functions, toasts
+│       ├── socket.js                # Socket.io client with JWT handshake auth
+│       ├── home.js                  # Landing page: stats, live map, forgot password
+│       ├── userDashboard.js         # Citizen dashboard logic
+│       ├── adminDashboard.js        # Admin control room logic
+│       ├── responderDashboard.js    # Responder console logic
+│       └── auth.js                  # Legacy (kept for reference)
 │
 └── server/                          # Backend
-    ├── .env                         # Environment config (DO NOT commit to git)
-    ├── .gitignore
+    ├── .env                         # Environment config (DO NOT commit)
     ├── package.json
     ├── server.js                    # Express + Socket.io bootstrap
-    ├── seed.js                      # Database seeder (creates admin + test user)
+    ├── seed.js                      # Seeds admin, citizens, 5 responders, sample reports
     ├── config/
     │   └── db.js                    # MongoDB connection handler
     ├── middleware/
-    │   └── auth.js                  # JWT protect, adminOnly, generateToken
+    │   └── auth.js                  # protect, adminOnly, responderOnly, generateToken
     ├── models/
-    │   ├── User.js                  # User schema (bcrypt auto-hash on save)
-    │   └── Report.js                # Emergency report schema (indexed)
+    │   ├── User.js                  # Users (roles: user/admin/responder)
+    │   ├── Report.js                # Reports (lifecycle, priority score, SLA, timeline, duplicates)
+    │   └── Responder.js             # Responder profiles (specialization, availability, zone, stats)
     ├── routes/
-    │   ├── auth.js                  # POST /register, /login, GET /me, PUT /profile
-    │   ├── reports.js               # CRUD + status change + image upload
-    │   └── stats.js                 # GET /public (no auth required - landing page)
+    │   ├── auth.js                  # register/login/refresh/logout/forgot/reset/me/profile
+    │   ├── reports.js               # Lifecycle transitions, priority, assign, duplicates, feedback
+    │   ├── responders.js            # Self-service + admin management
+    │   ├── notifications.js         # List, unread count, mark read
+    │   ├── users.js                 # Admin user management
+    │   ├── audit.js                 # Audit trail (admin)
+    │   ├── hotspots.js              # Grid hotspot clustering (admin)
+    │   └── stats.js                 # Public stats, public map, admin analytics
     ├── socket/
-    │   └── index.js                 # Room-based Socket.io event handler
+    │   └── index.js                 # JWT-authenticated rooms (admins, user_<id>)
     ├── utils/
-    │   ├── fileUpload.js            # Multer (memory) + Sharp image pipeline
-    │   └── emailService.js          # Nodemailer with HTML email templates
-    └── uploads/                     # Uploaded images stored here (auto-created)
+    │   ├── history.js               # Timeline + audit helpers
+    │   ├── notify.js                # Persistent notification helper (DB + socket)
+    │   ├── priority.js              # Transparent priority scoring engine
+    │   ├── sla.js                   # SLA minutes per priority + escalation
+    │   ├── geo.js                   # Haversine distance
+    │   ├── fileUpload.js            # Multer (memory) + Sharp WebP pipeline
+    │   └── emailService.js          # Nodemailer templates
+    └── uploads/                     # Uploaded images (auto-created)
 ```
 
 ---
 
 ## 📋 Prerequisites
-
-Before you begin, make sure you have the following installed on your system:
 
 | Software | Minimum Version | Download Link |
 |----------|----------------|---------------|
@@ -135,35 +216,25 @@ Before you begin, make sure you have the following installed on your system:
 ```bash
 node --version    # Should show v18.x or higher
 mongod --version  # Should show v6.x or higher
-git --version     # Any version is fine
 ```
 
 ---
 
 ## 🗄 Database Setup (Step-by-Step)
 
-This section walks you through setting up MongoDB from scratch. Follow the steps for your operating system.
-
----
-
 ### Step 1: Install MongoDB
 
 <details>
 <summary><strong>🪟 Windows</strong></summary>
 
-1. Download the **MongoDB Community Server** MSI installer from:
-   👉 https://www.mongodb.com/try/download/community
-2. Run the installer
-3. Choose **Complete** setup type
-4. ✅ Check **"Install MongoDB as a Service"** — this makes MongoDB start automatically with Windows
-5. ✅ Optionally check **"Install MongoDB Compass"** — a GUI tool for viewing your data
-6. Click **Install** → Wait for completion → **Finish**
-7. MongoDB is now running as a Windows service on port `27017`
+1. Download the **MongoDB Community Server** MSI from https://www.mongodb.com/try/download/community
+2. Run the installer → **Complete** setup
+3. ✅ Check **"Install MongoDB as a Service"** (auto-starts with Windows)
+4. Click **Install** → **Finish**
 
 **Verify it's running:**
 ```powershell
 Get-Service MongoDB
-# Status should show "Running"
 ```
 
 **If it's not running:**
@@ -178,302 +249,73 @@ net start MongoDB
 <summary><strong>🍎 macOS</strong></summary>
 
 ```bash
-# Install via Homebrew
 brew tap mongodb/brew
 brew install mongodb-community@7.0
-
-# Start as a background service
 brew services start mongodb-community@7.0
-```
-
-**Verify:**
-```bash
-mongosh --eval "db.runCommand({ ping: 1 })"
-# Should output: { ok: 1 }
 ```
 
 </details>
 
 <details>
-<summary><strong>🐧 Ubuntu / Debian Linux</strong></summary>
+<summary><strong>🐧 Ubuntu / Debian</strong></summary>
 
 ```bash
-# 1. Import MongoDB GPG key
-curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
-  sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-
-# 2. Add the repository
-echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] \
-  https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | \
-  sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-
-# 3. Install MongoDB
-sudo apt-get update
 sudo apt-get install -y mongodb-org
-
-# 4. Start and enable (auto-start on boot)
 sudo systemctl start mongod
 sudo systemctl enable mongod
-```
-
-**Verify:**
-```bash
-sudo systemctl status mongod
-# Should show "active (running)"
 ```
 
 </details>
 
 ---
 
-### Step 2: Understand the Connection URI
+### Step 2: Configure the Connection
 
-The project connects to MongoDB using a **connection string** (URI). Here's the default one used in this project:
+Open **`server/.env`** and set `MONGO_URI`:
 
-```
-mongodb://127.0.0.1:27017/emergency_alert_db
-```
-
-| Part | Meaning |
-|------|---------|
-| `mongodb://` | Protocol identifier |
-| `127.0.0.1` | Host address (localhost — your machine) |
-| `27017` | Port (MongoDB default) |
-| `emergency_alert_db` | Database name |
-
-> **Important:** You do **NOT** need to manually create the database. MongoDB creates it automatically when the first document is inserted.
-
----
-
-### Step 3: Configure the Connection
-
-Open the file **`server/.env`** and set the `MONGO_URI` variable:
-
-**Option A — Local MongoDB (no authentication, simplest):**
 ```env
+# Local MongoDB (simplest)
 MONGO_URI=mongodb://127.0.0.1:27017/emergency_alert_db
+
+# OR MongoDB Atlas (cloud)
+MONGO_URI=mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/emergency_alert_db?retryWrites=true&w=majority
 ```
 
-**Option B — Local MongoDB with authentication:**
-```env
-MONGO_URI=mongodb://myuser:mypassword@127.0.0.1:27017/emergency_alert_db?authSource=admin
-```
-
-**Option C — MongoDB Atlas (cloud-hosted, free tier available):**
-```env
-MONGO_URI=mongodb+srv://myuser:mypassword@cluster0.xxxxx.mongodb.net/emergency_alert_db?retryWrites=true&w=majority
-```
-
-> See [Step 8](#step-8-optional-using-mongodb-atlas-cloud) if you want to use Atlas instead of local MongoDB.
+> MongoDB creates the database automatically on first insert — no manual setup needed.
 
 ---
 
-### Step 4: Install Project Dependencies
+### Step 3: Install Dependencies & Seed
 
 ```bash
 cd server
 npm install
-```
-
-This installs all packages listed in `package.json` including `mongoose` (the MongoDB driver/ODM).
-
----
-
-### Step 5: Seed the Database
-
-The seed script creates the default **admin** and **test user** accounts:
-
-```bash
-cd server
 node seed.js
 ```
 
 **Expected output:**
 ```
 Connected to MongoDB
-✅ Admin user created:
-  Email: admin@emergency.com
-  Password: admin123
-
-✅ Test user created:
-  Email: user@test.com
-  Password: user123
-
+✅ Admin: admin@emergency.com / admin123
+✅ Citizens: user@test.com, priya@test.com, rahul@test.com / user123
+✅ Responders: responder1-5@test.com / responder123 (Medical/Fire/Police/Disaster/General)
+✅ Sample reports: ~12 reports across the lifecycle
 🎉 Seed complete!
-```
-
-**What this does internally:**
-1. Connects to MongoDB using the URI from `.env`
-2. Checks if admin user exists → creates if not
-3. Checks if test user exists → creates if not
-4. Passwords are automatically **hashed with bcrypt** before storing (via the Mongoose pre-save hook in `User.js`)
-5. Exits the process
-
----
-
-### Step 6: Start the Server
-
-```bash
-cd server
-npm start
-```
-
-**Expected output:**
-```
-✅ MongoDB Connected: 127.0.0.1
-🚀 Server running on port 5000
-```
-
-Now open your browser and go to: **http://localhost:5000**
-
----
-
-### Step 7: Verify the Database
-
-You can inspect the data using **MongoDB Compass** (GUI) or **mongosh** (CLI).
-
-<details>
-<summary><strong>Using mongosh (Command Line)</strong></summary>
-
-```bash
-# Open the MongoDB shell
-mongosh
-
-# Switch to the project database
-use emergency_alert_db
-
-# List all collections
-show collections
-# Output: users, reports
-
-# View all users (passwords are hashed, not visible in plain text)
-db.users.find({}, { name: 1, email: 1, role: 1, phone: 1 }).pretty()
-
-# Count documents
-db.users.countDocuments()    # 2 (admin + test user)
-db.reports.countDocuments()  # 0 (no reports yet)
-
-# View indexes on reports collection
-db.reports.getIndexes()
-# Shows: { status: 1, createdAt: -1 }, { user: 1, createdAt: -1 }, { type: 1 }
-
-# Exit
-exit
-```
-
-</details>
-
-<details>
-<summary><strong>Using MongoDB Compass (GUI)</strong></summary>
-
-1. Open **MongoDB Compass**
-2. In the connection string field, enter: `mongodb://127.0.0.1:27017`
-3. Click **Connect**
-4. In the left sidebar, click **emergency_alert_db**
-5. You'll see two collections: **users** and **reports**
-6. Click on **users** to see the seeded admin and test user
-7. Notice that passwords are stored as **bcrypt hashes** (e.g., `$2a$10$...`)
-
-</details>
-
----
-
-### Step 8 (Optional): Using MongoDB Atlas (Cloud)
-
-If you prefer a **cloud-hosted** database instead of installing MongoDB locally:
-
-1. Go to [cloud.mongodb.com](https://cloud.mongodb.com/) → Create a **free account**
-2. Click **Build a Database** → Choose **M0 Free** tier → Select a region close to you
-3. Set a **cluster name** (e.g., `EmergencyCluster`) → Click **Create Deployment**
-
-4. **Create a Database User:**
-   - Go to **Database Access** (left sidebar)
-   - Click **Add New Database User**
-   - Set a username and password
-   - Role: **Read and write to any database**
-   - Click **Add User**
-
-5. **Allow Network Access:**
-   - Go to **Network Access** (left sidebar)
-   - Click **Add IP Address**
-   - Click **Allow Access from Anywhere** (`0.0.0.0/0`) for development
-   - Click **Confirm**
-
-6. **Get Connection String:**
-   - Go to **Database** → Click **Connect** on your cluster
-   - Choose **Drivers** → Copy the connection string
-   - It looks like: `mongodb+srv://username:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`
-
-7. **Update `.env`:**
-   ```env
-   MONGO_URI=mongodb+srv://youruser:yourpassword@cluster0.xxxxx.mongodb.net/emergency_alert_db?retryWrites=true&w=majority
-   ```
-   > Replace `youruser`, `yourpassword`, and `cluster0.xxxxx` with your actual values. Add `/emergency_alert_db` before the `?` to specify the database name.
-
-8. **Seed the cloud database:**
-   ```bash
-   cd server
-   node seed.js
-   ```
-
----
-
-### Database Integration Summary
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    How Data Flows                             │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. User fills form → clicks Submit                          │
-│      ↓                                                       │
-│  2. Browser sends POST /api/reports (with JWT token)         │
-│      ↓                                                       │
-│  3. Express route receives request                           │
-│      ↓                                                       │
-│  4. Middleware verifies JWT → extracts user ID               │
-│      ↓                                                       │
-│  5. Multer processes uploaded images (memory buffer)         │
-│      ↓                                                       │
-│  6. Sharp compresses images → saves to /uploads as WebP      │
-│      ↓                                                       │
-│  7. Mongoose creates Report document:                        │
-│     Report.create({ user: userId, type, severity,            │
-│       title, description, location, images, status })        │
-│      ↓                                                       │
-│  8. MongoDB stores the document in `reports` collection      │
-│      ↓                                                       │
-│  9. Socket.io emits 'newReport' to admin room                │
-│      ↓                                                       │
-│  10. Admin dashboard receives event → refreshes list         │
-│      ↓                                                       │
-│  11. Nodemailer sends email notification to admin            │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🚀 Installation & Running
 
-### Quick Start (5 steps)
-
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/projectjitu.git
-cd projectjitu
-
-# 2. Install server dependencies
+# 1. Install server dependencies
 cd server
 npm install
 
-# 3. Configure environment (edit .env with your MongoDB URI)
-#    Default local URI works out of the box if MongoDB is running
-
-# 4. Seed the database
+# 2. Seed the database (creates accounts + sample data)
 node seed.js
 
-# 5. Start the server
+# 3. Start the server
 npm start
 ```
 
@@ -487,269 +329,183 @@ All environment variables are stored in `server/.env`:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PORT` | No | `5000` | Server port number |
+| `PORT` | No | `5000` | Server port |
 | `MONGO_URI` | **Yes** | — | MongoDB connection string |
-| `JWT_SECRET` | **Yes** | — | Secret key for signing JWT tokens |
-| `JWT_EXPIRE` | No | `7d` | Token expiration (e.g., `1h`, `7d`, `30d`) |
-| `EMAIL_HOST` | No | `smtp.gmail.com` | SMTP server hostname |
-| `EMAIL_PORT` | No | `587` | SMTP server port |
-| `EMAIL_USER` | No | — | SMTP email address |
-| `EMAIL_PASS` | No | — | SMTP password or app password |
-| `EMAIL_FROM` | No | — | Sender display name and email |
-| `ADMIN_EMAIL` | No | — | Email to receive new report alerts |
-| `NODE_ENV` | No | `development` | Environment mode |
+| `JWT_SECRET` | **Yes** | — | Secret for signing JWTs |
+| `JWT_EXPIRE` | No | `7d` | Access token lifetime |
+| `JWT_REFRESH_SECRET` | No | — | Secret for refresh tokens |
+| `JWT_REFRESH_EXPIRE` | No | `30d` | Refresh token lifetime |
+| `EMAIL_HOST` | No | `smtp.gmail.com` | SMTP host |
+| `EMAIL_PORT` | No | `587` | SMTP port |
+| `EMAIL_USER` | No | — | SMTP user |
+| `EMAIL_PASS` | No | — | SMTP password / app password |
+| `EMAIL_FROM` | No | — | Sender identity |
+| `ADMIN_EMAIL` | No | — | Alert recipient |
+| `NODE_ENV` | No | `development` | `development` shows reset links in API responses |
 
-> **Note:** Email notifications are **automatically skipped** if `EMAIL_USER` is not configured. The system works perfectly without email setup.
-
-**Example `.env` file:**
-```env
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/emergency_alert_db
-JWT_SECRET=your_super_secret_key_change_this
-JWT_EXPIRE=7d
-
-# Email (optional - skip for development)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
-EMAIL_FROM=Emergency Alert System <your_email@gmail.com>
-ADMIN_EMAIL=admin@emergency.com
-
-NODE_ENV=development
-```
+> **Note:** Email is **automatically skipped** if `EMAIL_USER` is not set. In development, the forgot-password API returns the reset URL directly so you can test without SMTP.
 
 ---
 
-## 🗃 Database Schema
+## 🗃 Data Model
 
-### Users Collection (`users`)
+### Users (`users`)
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `_id` | ObjectId | Auto-generated | Unique identifier |
-| `name` | String | Required, max 50 chars | Full name |
-| `email` | String | Required, unique, lowercase | Email address |
-| `password` | String | Required, min 6 chars, `select: false` | Bcrypt-hashed password |
-| `phone` | String | Optional, default: `''` | Phone number |
-| `role` | String | Enum: `user`, `admin` | User role |
-| `avatar` | String | Default: `''` | Avatar URL |
-| `notificationsEnabled` | Boolean | Default: `true` | Email notification preference |
-| `createdAt` | Date | Auto (timestamps) | Account creation date |
-| `updatedAt` | Date | Auto (timestamps) | Last modification date |
+| Field | Type | Description |
+|-------|------|-------------|
+| `name`, `email`, `password` | String | Bcrypt-hashed password, unique email |
+| `phone` | String | Contact number |
+| `role` | Enum | `user` \| `admin` \| `responder` |
+| `active` | Boolean | Admin can disable accounts |
+| `notificationsEnabled` | Boolean | Opt-out of notifications |
 
-**Key behaviors:**
-- Password is **automatically hashed** with bcrypt (10 salt rounds) via a Mongoose `pre('save')` hook
-- Password is **never returned** in queries by default (`select: false`)
-- Email is **uniquely indexed** — duplicate registrations are rejected
+### Reports (`reports`)
 
----
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | ObjectId → User | Reporter |
+| `type` | Enum | `accident` \| `fire` \| `crime` \| `medical` \| `natural_disaster` \| `other` |
+| `severity` | Enum | `low` \| `medium` \| `high` \| `critical` |
+| `title`, `description` | String | Incident details |
+| `location` | Object | `{ address, lat, lng }` |
+| `images` | [String] | Up to 4 WebP evidence photos |
+| `status` | Enum | Lifecycle status (see diagram) |
+| `legacyStatus` | Enum | `Pending` \| `In Progress` \| `Resolved` \| `Dismissed` (derived) |
+| `priority` | Enum | `LOW` \| `MEDIUM` \| `HIGH` \| `CRITICAL` |
+| `priorityScore` | Number | 0–100 transparent score |
+| `priorityReason` | String | Human-readable scoring explanation |
+| `prioritySetBy` | ObjectId | Admin override attribution |
+| `sla` | Object | `{ verifyDueAt, dispatchDueAt, resolveDueAt, escalated }` |
+| `timeline` | [Object] | `{ action, note, actor, actorName, at }` |
+| `assignedResponder` | ObjectId → User | Assigned responder |
+| `assignedAt / dispatchedAt / acceptedAt / arrivedAt / resolvedAt / closedAt` | Date | Lifecycle timestamps |
+| `duplicateOf` / `duplicates` | ObjectId[] | Duplicate clustering |
+| `rejectedReason` | String | Why the report was rejected |
+| `feedback` | Object | `{ rating, comment, submittedAt }` |
+| `adminNotes` | String | Admin notes |
 
-### Reports Collection (`reports`)
+### Responders (`responders`)
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `_id` | ObjectId | Auto-generated | Unique identifier |
-| `user` | ObjectId | Required, references `users` | Report author |
-| `type` | String | Required, enum: `accident`, `fire`, `crime`, `medical`, `natural_disaster`, `other` | Emergency category |
-| `severity` | String | Enum: `low`, `medium`, `high`, `critical`; default: `medium` | Urgency level |
-| `title` | String | Required, max 100 chars | Brief title |
-| `description` | String | Required, max 2000 chars | Detailed description |
-| `location.address` | String | Required | Human-readable address |
-| `location.lat` | Number | Nullable | GPS latitude |
-| `location.lng` | Number | Nullable | GPS longitude |
-| `images` | [String] | Max 4 items | Array of uploaded image file paths |
-| `status` | String | Enum: `Pending`, `In Progress`, `Resolved`, `Dismissed`; default: `Pending` | Current status |
-| `adminNotes` | String | Default: `''` | Notes from admin |
-| `resolvedAt` | Date | Nullable | Timestamp when resolved |
-| `createdAt` | Date | Auto (timestamps) | Submission date |
-| `updatedAt` | Date | Auto (timestamps) | Last update date |
-
-**Indexes for performance:**
-| Index | Fields | Purpose |
-|-------|--------|---------|
-| Status + Date | `{ status: 1, createdAt: -1 }` | Fast filtering by status with newest first |
-| User + Date | `{ user: 1, createdAt: -1 }` | Efficient "my reports" queries |
-| Type | `{ type: 1 }` | Quick type-based filtering |
-
----
-
-### Entity Relationship Diagram
-
-```
-┌──────────────────┐          1 : N          ┌──────────────────────┐
-│      users       │ ───────────────────────▶ │       reports        │
-│                  │                          │                      │
-│  _id (PK)        │◀─── user (FK, ObjectId) │  _id (PK)            │
-│  name            │                          │  title               │
-│  email (unique)  │                          │  type                │
-│  password (hash) │                          │  severity            │
-│  phone           │                          │  description         │
-│  role            │                          │  location {          │
-│  avatar          │                          │    address, lat, lng │
-│  createdAt       │                          │  }                   │
-│  updatedAt       │                          │  images []           │
-│                  │                          │  status              │
-│                  │                          │  adminNotes          │
-│                  │                          │  resolvedAt          │
-│                  │                          │  createdAt           │
-│                  │                          │  updatedAt           │
-└──────────────────┘                          └──────────────────────┘
-```
-
-**Relationship:** One User can submit many Reports. Each Report belongs to exactly one User.
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | ObjectId → User | Linked account |
+| `specialization` | Enum | `Medical` \| `Fire` \| `Police` \| `Disaster` \| `General` |
+| `availability` | Enum | `Available` \| `Assigned` \| `Responding` \| `Offline` |
+| `zone` | String | Patrol zone |
+| `contactPhone` | String | Dispatch contact |
+| `lastLocation` | Object | `{ lat, lng, updatedAt }` |
+| `stats` | Object | `{ resolvedCount, avgRating }` |
+| `active` | Boolean | Admin can deactivate |
 
 ---
 
 ## 📡 API Reference
 
-### Authentication Routes (`/api/auth`)
+### Auth (`/api/auth`)
 
-#### `POST /api/auth/register` — Create Account
-```json
-// Request Body
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "mypassword123",
-  "phone": "+91 9876543210"     // optional
-}
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/register` | Public | Create account → `{ token, refreshToken, user }` |
+| POST | `/login` | Public | Sign in → `{ token, refreshToken, user, responder? }` |
+| POST | `/refresh` | Public | Exchange refresh token for new access token |
+| POST | `/logout` | Auth | Invalidate refresh token |
+| POST | `/forgot-password` | Public | Send reset link (dev: returns `resetUrl`) |
+| POST | `/reset-password` | Public | Set new password with token |
+| GET | `/me` | Auth | Current user |
+| PUT | `/profile` | Auth | Update name/phone/password |
 
-// Response (201)
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": { "id": "...", "name": "John Doe", "email": "john@example.com", "role": "user", "phone": "+91 9876543210" }
-}
-```
+### Reports (`/api/reports`)
 
-#### `POST /api/auth/login` — Sign In
-```json
-// Request Body
-{ "email": "john@example.com", "password": "mypassword123" }
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/` | Auth | Submit report (multipart, images) — returns duplicate warning |
+| GET | `/my` | Auth | My reports (search/status/type filters + pagination) |
+| GET | `/` | Admin | All reports (status/type/severity/priority/assigned/escalated/search + pagination + stats) |
+| GET | `/:id` | Owner/Admin/Assigned | Full report with timeline |
+| PATCH | `/:id/status` | Role-enforced | Lifecycle transition (verify/reject/accept/arrive/resolve/close) |
+| PATCH | `/:id/priority` | Admin | Override priority with reason |
+| GET | `/:id/recommendations` | Admin | Top-5 scored responder recommendations |
+| PATCH | `/:id/assign` | Admin | Assign responder |
+| PATCH | `/:id/reject-assignment` | Responder | Reject dispatch with reason |
+| PATCH | `/:id/link-duplicate` | Admin | Link a duplicate to a primary report |
+| PATCH | `/:id/unlink-duplicate` | Admin | Remove duplicate link |
+| PUT | `/:id` | Owner | Edit while REPORTED |
+| PATCH | `/:id/withdraw` | Owner | Withdraw while REPORTED/VERIFIED/PRIORITIZED |
+| POST | `/:id/feedback` | Owner | Rate 1–5 after RESOLVED/CLOSED |
+| GET | `/:id/feedback` | Admin | View feedback |
+| DELETE | `/:id` | Admin | Delete report |
 
-// Response (200)
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": { "id": "...", "name": "John Doe", "email": "john@example.com", "role": "user", "phone": "..." }
-}
-```
+### Responders (`/api/responders`)
 
-#### `GET /api/auth/me` — Get Current User
-```
-Header: Authorization: Bearer <token>
-```
-```json
-// Response (200)
-{
-  "success": true,
-  "user": { "id": "...", "name": "John Doe", "email": "john@example.com", "role": "user", "phone": "...", "createdAt": "..." }
-}
-```
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/me` | Responder | Own profile |
+| PUT | `/me` | Responder | Update specialization/availability/zone/location |
+| GET | `/me/incidents` | Responder | Assigned incidents (`?view=active` or `all`) |
+| GET | `/nearby` | Admin | Available responders near coordinates |
+| GET | `/` | Admin | All responders with live stats |
+| POST | `/` | Admin | Create responder account |
+| PUT | `/:id` | Admin | Update responder |
+| DELETE | `/:id` | Admin | Deactivate responder |
 
-#### `PUT /api/auth/profile` — Update Profile
-```
-Header: Authorization: Bearer <token>
-```
-```json
-// Request Body (all fields optional)
-{
-  "name": "John Updated",
-  "phone": "+91 1234567890",
-  "currentPassword": "oldpassword",    // required if changing password
-  "newPassword": "newpassword123"      // min 6 chars
-}
+### Notifications (`/api/notifications`)
 
-// Response (200)
-{
-  "success": true,
-  "user": { "id": "...", "name": "John Updated", "email": "john@example.com", "role": "user", "phone": "+91 1234567890" }
-}
-```
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | Auth | List notifications (`?unread=true&limit=30`) |
+| GET | `/unread-count` | Auth | Unread badge count |
+| PATCH | `/:id/read` | Auth | Mark one read |
+| PATCH | `/read-all` | Auth | Mark all read |
 
----
+### Admin Routes
 
-### Report Routes (`/api/reports`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/api/users` | Admin | Users with report counts (role/search filters) |
+| PATCH | `/api/users/:id/activate` | Admin | Enable account |
+| PATCH | `/api/users/:id/deactivate` | Admin | Disable account |
+| GET | `/api/audit` | Admin | Audit trail (action/actor/search filters + actions list) |
+| GET | `/api/hotspots` | Admin | Hotspot clusters (`?days=30&minCount=3`) |
 
-#### `POST /api/reports` — Submit Emergency Report
-```
-Header: Authorization: Bearer <token>
-Content-Type: multipart/form-data
-```
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | `accident`, `fire`, `crime`, `medical`, `natural_disaster`, `other` |
-| `severity` | string | No | `low`, `medium`, `high`, `critical` (default: medium) |
-| `title` | string | Yes | Max 100 characters |
-| `description` | string | Yes | Max 2000 characters |
-| `address` | string | Yes | Location address |
-| `lat` | number | No | GPS latitude |
-| `lng` | number | No | GPS longitude |
-| `images` | file[] | No | Up to 4 images (JPEG, PNG, WebP; max 5MB each) |
+### Stats (`/api/stats`)
 
-#### `GET /api/reports/my` — Get My Reports
-```
-Header: Authorization: Bearer <token>
-Query: ?page=1&limit=20
-```
-
-#### `GET /api/reports` — Get All Reports (Admin Only)
-```
-Header: Authorization: Bearer <admin-token>
-Query: ?page=1&limit=20&status=Pending&type=fire&severity=high&search=keyword
-```
-
-#### `PATCH /api/reports/:id/status` — Update Status (Admin Only)
-```json
-// Request Body
-{ "status": "In Progress", "adminNotes": "Team dispatched to location" }
-```
-
-#### `DELETE /api/reports/:id` — Delete Report (Admin Only)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/public` | Public | Landing page stats |
+| GET | `/public-map` | Public | Active incidents for the public map (limit 200) |
+| GET | `/admin` | Admin | Full analytics (KPIs, breakdowns, responder performance, feedback) |
 
 ---
 
-### Statistics Routes (`/api/stats`)
+## 🔌 WebSocket Events
 
-#### `GET /api/stats/public` — Public Landing Page Stats (No Auth)
-```json
-// Response (200)
-{
-  "success": true,
-  "stats": {
-    "totalReports": 42,
-    "totalUsers": 15,
-    "statuses": { "Pending": 5, "In Progress": 8, "Resolved": 27, "Dismissed": 2 },
-    "types": { "accident": 12, "fire": 8, "crime": 6, "medical": 10, "natural_disaster": 3, "other": 3 },
-    "severities": { "low": 10, "medium": 18, "high": 9, "critical": 5 },
-    "avgResolutionHours": 4.2,
-    "recentResolved": [ { "type": "fire", "title": "...", "location": {...}, "severity": "high", "resolvedAt": "..." } ]
-  }
-}
-```
-
----
-
-### WebSocket Events
-
-| Event | Direction | Payload | Description |
-|-------|-----------|---------|-------------|
-| `joinRoom` | Client → Server | `{ room: 'admins' }` or `{ room: 'user_<id>' }` | Join a notification room |
-| `newReport` | Server → `admins` room | `{ _id, type, severity, title, ... }` | Emitted when user submits a new report |
-| `statusUpdate` | Server → `user_<id>` room | `{ reportId, status, adminNotes }` | Emitted when admin changes report status |
-| `adminTyping` | Client → Server | `{ reportId }` | Admin typing indicator |
+| Event | Direction | Audience | Description |
+|-------|-----------|----------|-------------|
+| `newReport` | Server → Admins | Control room | New report submitted (sound + toast) |
+| `incidentUpdate` | Server → Relevant | Reporter, assigned responder, admins | Any lifecycle change with full report |
+| `statusUpdate` | Server → Reporter | Citizen dashboard | Legacy event (status + adminNotes) |
+| `notification` | Server → User | Individual | Persistent notification created |
+| `unreadCountChanged` | Server → User | Individual | Badge refresh signal |
+| `responderLocation` | Server → Admins | Control room | Responder GPS updates |
+| `responderAvailabilityChanged` | Server → Admins | Control room | Duty status changes |
 
 ---
 
 ## 🔑 Default Credentials
 
-After running `node seed.js`, these accounts are available:
+After running `node seed.js`:
 
 | Role | Email | Password | Dashboard |
 |------|-------|----------|-----------|
 | **Admin** | `admin@emergency.com` | `admin123` | `/admin-dashboard.html` |
-| **User** | `user@test.com` | `user123` | `/user-dashboard.html` |
+| **Citizen** | `user@test.com` | `user123` | `/user-dashboard.html` |
+| **Citizen** | `priya@test.com` | `user123` | `/user-dashboard.html` |
+| **Citizen** | `rahul@test.com` | `user123` | `/user-dashboard.html` |
+| **Responder (Medical)** | `responder1@test.com` | `responder123` | `/responder-dashboard.html` |
+| **Responder (Fire)** | `responder2@test.com` | `responder123` | `/responder-dashboard.html` |
+| **Responder (Police)** | `responder3@test.com` | `responder123` | `/responder-dashboard.html` |
+| **Responder (Disaster)** | `responder4@test.com` | `responder123` | `/responder-dashboard.html` |
+| **Responder (General)** | `responder5@test.com` | `responder123` | `/responder-dashboard.html` |
 
 > ⚠ **Change these passwords immediately if deploying to production!**
 
@@ -757,100 +513,49 @@ After running `node seed.js`, these accounts are available:
 
 ## 🏗 Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      CLIENT (Browser)                        │
-│                                                              │
-│  ┌──────────┐  ┌────────────────┐  ┌────────────────────┐  │
-│  │index.html│  │ user-dashboard │  │  admin-dashboard   │  │
-│  │(landing) │  │     .html      │  │      .html         │  │
-│  └─────┬────┘  └───────┬────────┘  └─────────┬──────────┘  │
-│        │               │                      │             │
-│  ┌─────▼───────────────▼──────────────────────▼──────────┐  │
-│  │              api.js  (Fetch Wrapper + Auth)            │  │
-│  │              socket.js (Socket.io Client)              │  │
-│  └──────────────────────┬────────────────────────────────┘  │
-└─────────────────────────┼───────────────────────────────────┘
-                          │ HTTP REST + WebSocket (WS)
-┌─────────────────────────┼───────────────────────────────────┐
-│                         ▼        SERVER (Node.js)            │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │               Express 5.x + Socket.io                  │  │
-│  │                                                        │  │
-│  │  ┌──────────┐  ┌────────┐  ┌─────────┐  ┌─────────┐  │  │
-│  │  │ Helmet   │  │ CORS   │  │ Compress│  │RateLimit│  │  │
-│  │  └──────────┘  └────────┘  └─────────┘  └─────────┘  │  │
-│  ├────────────────────────────────────────────────────────┤  │
-│  │                     Routes                             │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │  │
-│  │  │ /api/auth    │  │ /api/reports │  │ /api/stats  │  │  │
-│  │  │ register     │  │ CRUD + upload│  │ public data │  │  │
-│  │  │ login        │  │ status mgmt  │  │             │  │  │
-│  │  │ me, profile  │  │ filters      │  │             │  │  │
-│  │  └──────────────┘  └──────────────┘  └─────────────┘  │  │
-│  ├────────────────────────────────────────────────────────┤  │
-│  │                    Middleware                           │  │
-│  │  ┌────────────┐  ┌────────────┐  ┌─────────────────┐  │  │
-│  │  │JWT Protect │  │ Admin Only │  │express-validator│  │  │
-│  │  └────────────┘  └────────────┘  └─────────────────┘  │  │
-│  ├────────────────────────────────────────────────────────┤  │
-│  │                    Utilities                           │  │
-│  │  ┌─────────────────┐  ┌────────────────────────────┐  │  │
-│  │  │ Multer + Sharp  │  │ Nodemailer (HTML emails)  │  │  │
-│  │  │ (image upload)  │  │                            │  │  │
-│  │  └─────────────────┘  └────────────────────────────┘  │  │
-│  └────────────────────────────┬───────────────────────────┘  │
-└───────────────────────────────┼──────────────────────────────┘
-                                │ Mongoose ODM
-┌───────────────────────────────┼──────────────────────────────┐
-│                               ▼                               │
-│                         MongoDB                               │
-│          ┌─────────────────────────────────────┐             │
-│          │       emergency_alert_db            │             │
-│          │                                     │             │
-│          │   ┌──────────┐    ┌────────────┐   │             │
-│          │   │  users   │───▶│  reports   │   │             │
-│          │   │ (2 docs) │ 1:N│ (N docs)   │   │             │
-│          │   └──────────┘    └────────────┘   │             │
-│          └─────────────────────────────────────┘             │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Client["Client (Browser)"]
+        L["index.html<br/>Landing + Public Map"]
+        U["user-dashboard.html<br/>Citizen"]
+        A["admin-dashboard.html<br/>Control Room"]
+        R["responder-dashboard.html<br/>Responder"]
+        API["api.js + socket.js"]
+        L --> API
+        U --> API
+        A --> API
+        R --> API
+    end
+
+    subgraph Server["Server (Node.js)"]
+        E["Express 5.x + Socket.io"]
+        M["JWT / RBAC / Validation / Rate Limit"]
+        RT["routes: auth, reports, responders,<br/>notifications, users, audit, hotspots, stats"]
+        UT["utils: priority, sla, notify,<br/>history, geo, upload, email"]
+        E --> M --> RT --> UT
+    end
+
+    DB[(MongoDB<br/>users · reports · responders ·<br/>notifications · auditlogs)]
+
+    Client -- "REST + WebSocket" --> Server
+    Server -- "Mongoose" --> DB
 ```
 
 ### Request Lifecycle
 
 ```
-1. User clicks "Submit Report" button
-     ↓
-2. userDashboard.js → api.js sends POST /api/reports with FormData + JWT
-     ↓
-3. Express receives request → Helmet, CORS, Compression middleware
-     ↓
-4. auth.js middleware → Verifies JWT → Attaches user to request
-     ↓
-5. reports.js route → Multer extracts images → Sharp compresses to WebP
-     ↓
-6. Mongoose validates data → Creates Report document in MongoDB
-     ↓
-7. Socket.io emits 'newReport' event to 'admins' room
-     ↓
-8. Nodemailer sends email notification to admin (if configured)
-     ↓
-9. Response { success: true, report: {...} } sent to browser
-     ↓
-10. Admin dashboard receives WebSocket event → Refreshes report list
+1. Citizen submits report (photos + GPS pin)
+2. api.js → POST /api/reports (FormData + JWT)
+3. Server: JWT verify → Multer → Sharp WebP compression
+4. Duplicate check → nearby same-type reports in last 24h
+5. Priority engine computes score + reason
+6. Report saved → Socket.io 'newReport' → control room (sound + toast)
+7. Admin verifies → SLA deadlines set → citizen notified
+8. Admin opens recommendations → assigns best responder
+9. Responder accepts → arrives → resolves (each step notifies citizen)
+10. Citizen rates the response → admin closes the incident
+11. Every privileged action lands in the audit trail
 ```
-
----
-
-## 📸 Screenshots
-
-After starting the server, visit **http://localhost:5000** to see:
-
-| Page | URL | Description |
-|------|-----|-------------|
-| **Landing Page** | `/` | Live stats (total reports, severity bar, type breakdown), recently resolved incidents, feature showcase, login/register modal |
-| **User Dashboard** | `/user-dashboard.html` | Submit reports with map & GPS, drag-and-drop image upload, track report statuses, edit profile |
-| **Admin Dashboard** | `/admin-dashboard.html` | Real-time stats grid, filter & search reports, change status with notes, view location on map, notification bell with sound, edit profile |
 
 ---
 
@@ -858,21 +563,21 @@ After starting the server, visit **http://localhost:5000** to see:
 
 | Problem | Solution |
 |---------|----------|
-| **`EADDRINUSE: address already in use :::5000`** | Port 5000 is occupied. Find & kill the process: `netstat -ano \| findstr :5000` (Windows) or `lsof -i :5000` (Mac/Linux) |
-| **`MongoServerError: connect ECONNREFUSED`** | MongoDB is not running. Start it: `net start MongoDB` (Windows) / `sudo systemctl start mongod` (Linux) |
-| **`Cannot find module 'xyz'`** | Dependencies missing. Run `cd server && npm install` |
-| **Images not uploading** | `server/uploads/` directory is created automatically. Check disk space and file permissions |
-| **Emails not sending** | Set `EMAIL_USER` and `EMAIL_PASS` in `.env`. For Gmail, create an [App Password](https://support.google.com/accounts/answer/185833) |
-| **Seed says "already exists"** | Users were already created — this is normal. Use the existing credentials |
-| **Login returns 401** | Check email/password. Passwords are case-sensitive. Try re-running `node seed.js` |
-| **Map not loading** | Requires internet connection for OpenStreetMap tiles |
-| **Socket events not working** | Make sure the server was started (not just `npm install`). Check browser console for WebSocket errors |
+| **`EADDRINUSE :::5000`** | `netstat -ano \| findstr :5000` then `taskkill /PID <pid> /F` (Windows) |
+| **`ECONNREFUSED` on Mongo** | Start MongoDB: `net start MongoDB` (Windows) / `brew services start mongodb-community` (macOS) |
+| **`Cannot find module 'xyz'`** | `cd server && npm install` |
+| **Images not uploading** | Check `server/uploads/` exists and disk space |
+| **Emails not sending** | Set `EMAIL_USER`/`EMAIL_PASS` in `.env` (Gmail needs an [App Password](https://support.google.com/accounts/answer/185833)); dev mode shows reset links in the API response |
+| **Seed says "already exists"** | Normal — accounts already exist; re-run with a fresh database to regenerate sample reports |
+| **Login returns 401** | Check credentials; re-run `node seed.js` |
+| **Map not loading** | Needs internet for OpenStreetMap tiles |
+| **Socket events not firing** | Check browser console; ensure you're logged in (socket auth requires JWT) |
 
 ---
 
 ## 📝 License
 
-This project is built for **educational purposes** as a university minor project.
+Built for **educational purposes** as a university major project.
 
 ---
 
@@ -880,6 +585,6 @@ This project is built for **educational purposes** as a university minor project
 
 **Built with ❤️ using Node.js, Express, MongoDB, Socket.io, and Leaflet.js**
 
-`© 2026 — University Minor Project`
+`© 2026 — University Major Project`
 
 </div>
